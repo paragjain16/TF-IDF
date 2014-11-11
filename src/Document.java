@@ -7,22 +7,33 @@ public class Document {
     ArrayList<Integer> attrRealIndex;
     ArrayList<Integer> count;
     ArrayList<Double> termFrequency;
+    ArrayList<Double> termFrequency1;
     int totalCount;
     PriorityQueue<Integer> minHeap;
+    PriorityQueue<Integer> minHeap1;
     String docClass;
-    String docEntry;
+    String classEntryLine;
     ArrayList<AttributeReal> attrReal;
+    int docEntryLine;
+    int maxCountIndex;
+    int maxCount;
 
     public Document(ArrayList<Integer> attrRealIndex, ArrayList<Integer> count, ArrayList<Double> termFrequency,
-                    int totalCount, PriorityQueue<Integer> minHeap, String docClass, ArrayList<AttributeReal> attrReal, String docEntry){
+                    int totalCount, PriorityQueue<Integer> minHeap, PriorityQueue<Integer> minHeap1, String docClass, ArrayList<AttributeReal> attrReal,
+                    String classEntryLine, int maxCountIndex, int maxCount, ArrayList<Double> termFrequency1, int docEntryLine){
         this.attrRealIndex = attrRealIndex;
         this.count = count;
         this.termFrequency = termFrequency;
         this.totalCount = totalCount;
         this.minHeap = minHeap;
+        this.minHeap1 = minHeap1;
         this.docClass = docClass;
         this.attrReal = attrReal;
-        this.docEntry = docEntry;
+        this.classEntryLine = classEntryLine;
+        this.docEntryLine = docEntryLine;
+        this.maxCountIndex = maxCountIndex;
+        this.maxCount = maxCount;
+        this.termFrequency1 = termFrequency1;
     }
     public String getTop10(){
         StringBuilder sb = new StringBuilder();
@@ -34,7 +45,24 @@ public class Document {
         }
         return sb.toString();
     }
-
+    public String getTop10Str(){
+        StringBuilder sb = new StringBuilder();
+        while(!minHeap.isEmpty()){
+            int curr = minHeap.poll();
+            int index = attrRealIndex.get(curr);
+            sb.insert(0, attrReal.get(index).attr+", ");
+        }
+        return sb.toString();
+    }
+    public String getTop10TFStr(){
+        StringBuilder sb = new StringBuilder();
+        while(!minHeap1.isEmpty()){
+            int curr = minHeap1.poll();
+            int index = attrRealIndex.get(curr);
+            sb.insert(0, attrReal.get(index).attr+", ");
+        }
+        return sb.toString();
+    }
     public String toTFString(){
         StringBuilder str = new StringBuilder("{");
         int i=0;
@@ -42,18 +70,31 @@ public class Document {
             str.append(index+" "+termFrequency.get(i)+",");
             i++;
         }
-        str.append(docEntry+" "+docClass+"}");
+        str.append(docEntryLine+" "+docClass+"}");
         return str.toString();
     }
 
-    static Document parse(String line, ArrayList<AttributeReal> attrReal){
+    public String toTF1String(){
+        StringBuilder str = new StringBuilder("{");
+        int i=0;
+        for(int index: attrRealIndex){
+            str.append(index+" "+termFrequency1.get(i)+",");
+            i++;
+        }
+        str.append(docEntryLine+" "+docClass+"}");
+        return str.toString();
+    }
+
+    static Document parse(String line, ArrayList<AttributeReal> attrReal, int docEntryLine){
         ArrayList<Integer> attrRealIndex = new ArrayList<Integer>();
         final ArrayList<Integer> count = new ArrayList<Integer>();
         final ArrayList<Double> termFrequency = new ArrayList<Double>();
+        final ArrayList<Double> termFrequency1 = new ArrayList<Double>();
         int totalCount = 0;
         String docClass = "-1";
-        String docEntry = "0";
-
+        String classEntryLine = "0";
+        int maxCountIndex = -1;
+        int maxCount = Integer.MIN_VALUE;
         String[] entries = line.substring(1, line.length()-1).split(",");
 
         for(int i=0; i < entries.length-1; i++){
@@ -62,10 +103,14 @@ public class Document {
             attrRealIndex.add(index);
             attrReal.get(index).incrementDocs();
             int freq = Integer.parseInt(token[1]);
+            if(freq > maxCount){
+                maxCount = freq;
+                maxCountIndex = index;
+            }
             count.add(freq);
             totalCount+=freq;
         }
-        docEntry= entries[entries.length-1].split(" ")[0];
+        classEntryLine= entries[entries.length-1].split(" ")[0];
         docClass= entries[entries.length-1].split(" ")[1];
         PriorityQueue<Integer> minHeap = new PriorityQueue<Integer>(totalCount, new Comparator<Integer>(){
             @Override
@@ -77,10 +122,22 @@ public class Document {
                 return 0;
             }
         });
+        PriorityQueue<Integer> minHeap1 = new PriorityQueue<Integer>(totalCount, new Comparator<Integer>(){
+            @Override
+            public int compare(Integer o1, Integer o2) {
+                if(termFrequency1.get(o1) > termFrequency1.get(o2))
+                    return 1;
+                else if(termFrequency1.get(o1) < termFrequency1.get(o2))
+                    return -1;
+                return 0;
+            }
+        });
 
         for(int i=0; i<attrRealIndex.size(); i++){
             double termFreq = (double)count.get(i)/totalCount;
+            double termFreq1 = (double)count.get(i)/maxCount;
             termFrequency.add(termFreq);
+            termFrequency1.add(termFreq1);
             if(minHeap.size() <= 10) {
                 minHeap.add(i);
             }else{
@@ -90,8 +147,18 @@ public class Document {
                     minHeap.add(i);
                 }
             }
+            if(minHeap1.size() <= 10) {
+                minHeap1.add(i);
+            }else{
+                int index = minHeap1.peek();
+                if(Double.compare(termFreq1, termFrequency1.get(index)) > 0){
+                    minHeap1.poll();
+                    minHeap1.add(i);
+                }
+            }
         }
-        return new Document(attrRealIndex, count, termFrequency, totalCount, minHeap, docClass, attrReal, docEntry);
+        return new Document(attrRealIndex, count, termFrequency, totalCount, minHeap, minHeap1, docClass,
+                attrReal, classEntryLine, maxCountIndex, maxCount, termFrequency1, docEntryLine);
     }
 
 }

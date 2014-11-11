@@ -6,6 +6,7 @@ import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 
 /**
  * Created by Parag on 09-11-2014.
@@ -50,6 +51,7 @@ public class ArrfFile {
             BufferedReader br = new BufferedReader(new FileReader(f));
             String line;
             int i = 0;
+            int lineNum = 0;
             relation = br.readLine();
             while((line = br.readLine())!=null){
                 if(line.startsWith("@attribute T")){
@@ -58,7 +60,7 @@ public class ArrfFile {
                     attrReal.add(new AttributeReal(attr, i+""));
                     i++;
                 }else if(line.startsWith("{")){
-                    Document doc = Document.parse(line, attrReal);
+                    Document doc = Document.parse(line, attrReal, lineNum);
                     docs.add(doc);
                     totalDocs++;
                 }else if(line.startsWith("@attribute class")){
@@ -67,6 +69,7 @@ public class ArrfFile {
                     Collections.addAll(attrClassList, classes);
                     attrClass = new AttributeClass(attrClassList);
                 }
+                lineNum++;
             }
             for(AttributeReal attributeReal: attrReal){
                 attributeReal.idf = Math.log((double)totalDocs/(1+attributeReal.docs));
@@ -77,7 +80,7 @@ public class ArrfFile {
         }
         return new ArrfFile(attrReal, attrClass, attrClassList, docs, totalDocs, fileName, relation);
     }
-    static void writeTFfile(ArrfFile arrfFile){
+    static void writeTFfile(ArrfFile arrfFile, String tf){
         String file = arrfFile.fileName;
         if(file.split("/").length > 0){
             String[] tokens = file.split("/");
@@ -86,7 +89,11 @@ public class ArrfFile {
             String[] tokens = file.split("\\\\");
             file = tokens[tokens.length-1];
         }
-        File f = new File("pjain11."+file.split("\\.")[0]+".tf1.arff");
+        File f = null;
+        if(tf.equals("tf1"))
+            f = new File("pjain11."+file.split("\\.")[0]+".tf1.arff");
+        else
+            f = new File("pjain11."+file.split("\\.")[0]+".tf2.arff");
         try {
             PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(f)));
             pw.println(arrfFile.relation);
@@ -98,7 +105,10 @@ public class ArrfFile {
             pw.println();
             pw.println("@data");
             for(Document document: arrfFile.docs){
-                pw.println(document.toTFString());
+                if(tf.equals("tf1"))
+                    pw.println(document.toTFString());
+                else
+                    pw.println(document.toTF1String());
             }
             pw.close();
         }catch(Exception e){
@@ -107,8 +117,18 @@ public class ArrfFile {
     }
 
     public static void main(String[] args) {
+        String tf = args[1];
         ArrfFile arrfFile = ArrfFile.readFile(args[0]);
-        ArrfFile.writeTFfile(arrfFile);
-        System.out.println(arrfFile.docs.get(0).getTop10()+arrfFile.docs.get(0).docEntry+" "+arrfFile.docs.get(0).docClass);
+        ArrfFile.writeTFfile(arrfFile, tf);
+        HashSet<String> hs = new HashSet<String>(arrfFile.attrClassList.size());
+        for(String str: arrfFile.attrClassList)
+            hs.add(str);
+        for(Document doc: arrfFile.docs) {
+            if(hs.contains(doc.docClass)) {
+                System.out.println("Top 10 words in document at line "+doc.docEntryLine+" with class "+doc.docClass+" -    ");
+                System.out.println(tf.equals("tf1")? doc.getTop10Str():doc.getTop10TFStr());// + doc.classEntryLine + " " + doc.docClass);
+                hs.remove(doc.docClass);
+            }
+        }
     }
 }
