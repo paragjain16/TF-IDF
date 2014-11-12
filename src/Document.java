@@ -8,12 +8,16 @@ public class Document {
     ArrayList<Integer> count;
     ArrayList<Double> termFrequency;
     ArrayList<Double> termFrequency1;
+    ArrayList<Double> idf;
+    ArrayList<Double> tfIdf;
     int totalCount;
     PriorityQueue<Integer> minHeap;
     PriorityQueue<Integer> minHeap1;
+    PriorityQueue<Integer> minHeap2;
+    PriorityQueue<Integer> minHeap3;
     String docClass;
     String classEntryLine;
-    ArrayList<AttributeReal> attrReal;
+    final ArrayList<AttributeReal> attrReal;
     int docEntryLine;
     int maxCountIndex;
     int maxCount;
@@ -45,7 +49,7 @@ public class Document {
         }
         return sb.toString();
     }
-    public String getTop10Str(){
+    public String getTop10TFStr(){
         StringBuilder sb = new StringBuilder();
         while(!minHeap.isEmpty()){
             int curr = minHeap.poll();
@@ -54,10 +58,28 @@ public class Document {
         }
         return sb.toString();
     }
-    public String getTop10TFStr(){
+    public String getTop10TF1Str(){
         StringBuilder sb = new StringBuilder();
         while(!minHeap1.isEmpty()){
             int curr = minHeap1.poll();
+            int index = attrRealIndex.get(curr);
+            sb.insert(0, attrReal.get(index).attr+", ");
+        }
+        return sb.toString();
+    }
+    public String getTop10IDFStr(){
+        StringBuilder sb = new StringBuilder();
+        while(!minHeap2.isEmpty()){
+            int curr = minHeap2.poll();
+            int index = attrRealIndex.get(curr);
+            sb.insert(0, attrReal.get(index).attr+", ");
+        }
+        return sb.toString();
+    }
+    public String getTop10TFIDFStr(){
+        StringBuilder sb = new StringBuilder();
+        while(!minHeap3.isEmpty()){
+            int curr = minHeap3.poll();
             int index = attrRealIndex.get(curr);
             sb.insert(0, attrReal.get(index).attr+", ");
         }
@@ -85,8 +107,30 @@ public class Document {
         return str.toString();
     }
 
-    static Document parse(String line, ArrayList<AttributeReal> attrReal, int docEntryLine){
-        ArrayList<Integer> attrRealIndex = new ArrayList<Integer>();
+    public String toIDFString(){
+        StringBuilder str = new StringBuilder("{");
+        int i=0;
+        for(int index: attrRealIndex){
+            str.append(index+" "+idf.get(i)+",");
+            i++;
+        }
+        str.append(docEntryLine+" "+docClass+"}");
+        return str.toString();
+    }
+
+    public String toTFIDFString(){
+        StringBuilder str = new StringBuilder("{");
+        int i=0;
+        for(int index: attrRealIndex){
+            str.append(index+" "+tfIdf.get(i)+",");
+            i++;
+        }
+        str.append(docEntryLine+" "+docClass+"}");
+        return str.toString();
+    }
+
+    static Document parse(String line, final ArrayList<AttributeReal> attrReal, int docEntryLine){
+        final ArrayList<Integer> attrRealIndex = new ArrayList<Integer>();
         final ArrayList<Integer> count = new ArrayList<Integer>();
         final ArrayList<Double> termFrequency = new ArrayList<Double>();
         final ArrayList<Double> termFrequency1 = new ArrayList<Double>();

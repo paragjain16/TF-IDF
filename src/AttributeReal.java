@@ -3,15 +3,17 @@
  */
 public class AttributeReal {
     String pre = "@attribute";
+    String post;
     String attr;
     String index;
     int docs;
     double idf;
 
-    AttributeReal(String attr, String index){
+    AttributeReal(String attr, String index, String post){
         this.attr = attr;
         this.index = index;
         docs = 0;
+        this.post = post;
     }
     void setDocs(int docs){
         this.docs = docs;
@@ -23,6 +25,6 @@ public class AttributeReal {
         docs++;
     }
     public String toString(){
-        return pre+" T"+attr+" real";
+        return pre+" T"+attr+" "+post;
     }
 }

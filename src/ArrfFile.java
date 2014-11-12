@@ -1,12 +1,5 @@
-import org.w3c.dom.Attr;
-
-import javax.print.Doc;
 import java.io.*;
-import java.lang.reflect.Array;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.*;
 
 /**
  * Created by Parag on 09-11-2014.
@@ -57,7 +50,7 @@ public class ArrfFile {
                 if(line.startsWith("@attribute T")){
                     String[] tokens = line.split(" ");
                     String attr = tokens[1].substring(1);
-                    attrReal.add(new AttributeReal(attr, i+""));
+                    attrReal.add(new AttributeReal(attr, i+"", tokens[2]));
                     i++;
                 }else if(line.startsWith("{")){
                     Document doc = Document.parse(line, attrReal, lineNum);
@@ -73,6 +66,64 @@ public class ArrfFile {
             }
             for(AttributeReal attributeReal: attrReal){
                 attributeReal.idf = Math.log((double)totalDocs/(1+attributeReal.docs));
+            }
+            // For TF IDF
+            for(Document document: docs){
+                final Document doc = document;
+                int j=0;
+                doc.idf = new ArrayList<Double>(doc.attrRealIndex.size());
+                doc.tfIdf = new ArrayList<Double>(doc.attrRealIndex.size());
+
+                //IDF
+                doc.minHeap2 = new PriorityQueue<Integer>(doc.totalCount, new Comparator<Integer>(){
+                    @Override
+                    public int compare(Integer o1, Integer o2) {
+                        if(Double.compare(doc.idf.get(o1), doc.idf.get(o2)) > 0)
+                            return 1;
+                        else if(Double.compare(doc.idf.get(o1), doc.idf.get(o2)) < 0)
+                            return -1;
+                        return 0;
+                    }
+                });
+                //TF-IDF
+                doc.minHeap3 = new PriorityQueue<Integer>(doc.totalCount, new Comparator<Integer>(){
+                    @Override
+                    public int compare(Integer o1, Integer o2) {
+                        if(Double.compare(doc.tfIdf.get(o1), doc.tfIdf.get(o2)) > 0)
+                            return 1;
+                        else if(Double.compare(doc.tfIdf.get(o1), doc.tfIdf.get(o2)) < 0)
+                            return -1;
+                        return 0;
+                    }
+                });
+
+                for(int index: doc.attrRealIndex){
+                    double idf = doc.count.get(j)*attrReal.get(index).idf;
+                    double tfIdf = doc.termFrequency.get(j)*attrReal.get(index).idf;
+                    doc.idf.add(idf);
+                    doc.idf.add(tfIdf);
+
+                    if(doc.minHeap2.size() <= 10) {
+                        doc.minHeap2.add(j);
+                    }else{
+                        int idx = doc.minHeap2.peek();
+                        if(Double.compare(idf, doc.idf.get(idx)) > 0){
+                            doc.minHeap2.poll();
+                            doc.minHeap2.add(j);
+                        }
+                    }
+                    if(doc.minHeap3.size() <= 10) {
+                        doc.minHeap3.add(j);
+                    }else{
+                        int idx = doc.minHeap3.peek();
+                        if(Double.compare(tfIdf, doc.tfIdf.get(idx)) > 0){
+                            doc.minHeap3.poll();
+                            doc.minHeap3.add(j);
+                        }
+                    }
+                    j++;
+                }
+
             }
             br.close();
         }catch (Exception e){
@@ -90,10 +141,14 @@ public class ArrfFile {
             file = tokens[tokens.length-1];
         }
         File f = null;
-        if(tf.equals("tf1"))
+        if(tf.equals("1"))
             f = new File("pjain11."+file.split("\\.")[0]+".tf1.arff");
-        else
+        else if(tf.equals("2"))
             f = new File("pjain11."+file.split("\\.")[0]+".tf2.arff");
+        else if(tf.equals("3"))
+            f = new File("pjain11."+file.split("\\.")[0]+".idf.arff");
+        else if(tf.equals("4"))
+            f = new File("pjain11."+file.split("\\.")[0]+".tfidf.arff");
         try {
             PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(f)));
             pw.println(arrfFile.relation);
@@ -105,10 +160,14 @@ public class ArrfFile {
             pw.println();
             pw.println("@data");
             for(Document document: arrfFile.docs){
-                if(tf.equals("tf1"))
+                if(tf.equals("1"))
                     pw.println(document.toTFString());
-                else
+                else if(tf.equals("2"))
                     pw.println(document.toTF1String());
+                else if(tf.equals("3"))
+                    pw.println(document.toIDFString());
+                else if(tf.equals("4"))
+                    pw.println(document.toTFIDFString());
             }
             pw.close();
         }catch(Exception e){
@@ -126,7 +185,15 @@ public class ArrfFile {
         for(Document doc: arrfFile.docs) {
             if(hs.contains(doc.docClass)) {
                 System.out.println("Top 10 words in document at line "+doc.docEntryLine+" with class "+doc.docClass+" -    ");
-                System.out.println(tf.equals("tf1")? doc.getTop10Str():doc.getTop10TFStr());// + doc.classEntryLine + " " + doc.docClass);
+                if(tf.equals("1"))
+                    System.out.println( doc.getTop10TFStr());
+                else if(tf.equals("2"))
+                    System.out.println( doc.getTop10TF1Str());
+                else if(tf.equals("3"))
+                    System.out.println( doc.getTop10IDFStr());
+                else if(tf.equals("4"))
+                    System.out.println( doc.getTop10TFIDFStr());
+                //System.out.println( doc.getTop10Str());// + doc.classEntryLine + " " + doc.docClass);
                 hs.remove(doc.docClass);
             }
         }
