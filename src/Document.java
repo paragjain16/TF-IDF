@@ -156,7 +156,7 @@ public class Document {
         }
         classEntryLine= entries[entries.length-1].split(" ")[0];
         docClass= entries[entries.length-1].split(" ")[1];
-        PriorityQueue<Integer> minHeap = new PriorityQueue<Integer>(totalCount, new Comparator<Integer>(){
+        PriorityQueue<Integer> minHeap = new PriorityQueue<Integer>(10, new Comparator<Integer>(){
             @Override
             public int compare(Integer o1, Integer o2) {
                 if(termFrequency.get(o1) > termFrequency.get(o2))
@@ -166,7 +166,7 @@ public class Document {
                 return 0;
             }
         });
-        PriorityQueue<Integer> minHeap1 = new PriorityQueue<Integer>(totalCount, new Comparator<Integer>(){
+        PriorityQueue<Integer> minHeap1 = new PriorityQueue<Integer>(10, new Comparator<Integer>(){
             @Override
             public int compare(Integer o1, Integer o2) {
                 if(termFrequency1.get(o1) > termFrequency1.get(o2))
