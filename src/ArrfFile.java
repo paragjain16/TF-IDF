@@ -17,9 +17,12 @@ public class ArrfFile {
     int totalDocs;
     String relation;
     String fileName;
+    HashMap<String, ArrayList<Document>> mappingFromClassToDocs;
 
     ArrfFile(ArrayList<AttributeReal> attrReal, AttributeClass attrClass, ArrayList<String> attrClassList,
-             ArrayList<Document> docs, int totalDocs, String fileName, String relation, PriorityQueue<Integer> minHeapIDF){
+             ArrayList<Document> docs, int totalDocs, String fileName, String relation,
+             PriorityQueue<Integer> minHeapIDF,
+             HashMap<String, ArrayList<Document>> mappingFromClassToDocs){
         this.attrReal = attrReal;
         this.attrClass = attrClass;
         this.attrClassList = attrClassList;
@@ -28,10 +31,12 @@ public class ArrfFile {
         this.fileName = fileName;
         this.relation = relation;
         this.minHeapIDF = minHeapIDF;
+        this.mappingFromClassToDocs = mappingFromClassToDocs;
     }
 
     static ArrfFile readFile(String fileName){
         final ArrayList<AttributeReal> attrReal = new ArrayList<AttributeReal>();
+        HashMap<String, ArrayList<Document>> mappingFromClassToDocs = new HashMap<String, ArrayList<Document>>();
         ArrayList<String> attrClassList = new ArrayList<String>();
         AttributeClass attrClass = null;
         ArrayList<Document> docs = new ArrayList<Document>();
@@ -69,6 +74,13 @@ public class ArrfFile {
                     Document doc = Document.parse(line, attrReal, lineNum);
                     docs.add(doc);
                     totalDocs++;
+                    if(mappingFromClassToDocs.containsKey(doc.docClass)){
+                        mappingFromClassToDocs.get(doc.docClass).add(doc);
+                    }else{
+                        ArrayList<Document> d = new ArrayList<Document>();
+                        d.add(doc);
+                        mappingFromClassToDocs.put(doc.docClass, d);
+                    }
                 }else if(line.startsWith("@attribute class")){
                     String[] tokens = line.split(" ");
                     String[] classes = tokens[2].substring(1, tokens[2].length()-1).split(",");
@@ -77,8 +89,8 @@ public class ArrfFile {
                 }
                 lineNum++;
             }
+            //Calculate IDF
             int k=0;
-
             for(AttributeReal attributeReal: attrReal){
                 double idf = Math.log((double)totalDocs/(1+attributeReal.docs));
                 attributeReal.idf = idf;
@@ -149,14 +161,14 @@ public class ArrfFile {
                     }
                     j++;
                 }
-
             }
             br.close();
         }catch (Exception e){
             e.printStackTrace();
         }
-        return new ArrfFile(attrReal, attrClass, attrClassList, docs, totalDocs, fileName, relation, minHeapIDF);
+        return new ArrfFile(attrReal, attrClass, attrClassList, docs, totalDocs, fileName, relation, minHeapIDF, mappingFromClassToDocs);
     }
+
     static void writeTFfile(ArrfFile arrfFile, String tf){
         String file = arrfFile.fileName;
         if(file.split("/").length > 0){
@@ -205,9 +217,75 @@ public class ArrfFile {
         StringBuilder sb = new StringBuilder();
         while(!minHeapIDF.isEmpty()){
             int curr = minHeapIDF.poll();
-            sb.insert(0, attrReal.get(curr).attr+", ");
+            sb.insert(0, attrReal.get(curr).attr+" "+attrReal.get(curr).idf+", ");
         }
-        return sb.toString();
+        return sb.toString().substring(0, sb.length()-2);
+    }
+
+    public void getTop10TFStr(){
+
+        for (String str : attrClassList){
+            final ArrayList<Double> tflist = new ArrayList<Double>();
+            final ArrayList<String> attributes = new ArrayList<String>();
+            PriorityQueue<Integer> minHeapLocal = new PriorityQueue<Integer>(10, new Comparator<Integer>() {
+                @Override
+                public int compare(Integer o1, Integer o2) {
+                    if(Double.compare(tflist.get(o1), tflist.get(o2)) > 0)
+                        return 1;
+                    else if(Double.compare(tflist.get(o1), tflist.get(o2)) < 0)
+                        return -1;
+                    else
+                        return 0;
+                }
+            });
+            StringBuilder sb = new StringBuilder();
+
+
+            //HashMap<String, Double> map = new HashMap<String, Double>();
+            for(Document doc: mappingFromClassToDocs.get(str)){
+                while(!doc.minHeap.isEmpty()){
+                    int curr = doc.minHeap.poll();
+                    int index = doc.attrRealIndex.get(curr);
+                    double tf = doc.termFrequency.get(curr);
+                    String attr = doc.attrReal.get(index).attr;
+                    tflist.add(tf);
+                    attributes.add(attr);
+                }
+
+            }
+            HashMap<String, Integer> attrInHeap = new HashMap<String, Integer>();
+            for(int i =0; i< tflist.size(); i++){
+                String currentAttribute = attributes.get(i);
+                if(!attrInHeap.containsKey(currentAttribute)) {
+                    if (minHeapLocal.size() < 10) {
+                        minHeapLocal.offer(i);
+                        attrInHeap.put(currentAttribute, i);
+                    }else{
+                        int index = minHeapLocal.peek();
+                        if(Double.compare(tflist.get(i), tflist.get(index)) > 0){
+                            minHeapLocal.poll();
+                            attrInHeap.remove(attributes.get(index));
+                            minHeapLocal.offer(i);
+                            attrInHeap.put(currentAttribute, i);
+                        }
+                    }
+
+                }else{
+                    int indexOfDuplicate = attrInHeap.get(attributes.get(i));
+                    if(Double.compare(tflist.get(indexOfDuplicate), tflist.get(i)) < 0){
+                        minHeapLocal.remove(indexOfDuplicate);
+                        minHeapLocal.offer(i);
+                        attrInHeap.put(currentAttribute, i);
+                    }
+                }
+            }
+            System.out.println("Top 10 TF (1) words for newsgroup "+str +" are - ");
+            while(!minHeapLocal.isEmpty()){
+                int curr = minHeapLocal.poll();
+                sb.insert(0, attributes.get(curr)+" "+tflist.get(curr)+", ");
+            }
+            System.out.println(sb.toString().substring(0, sb.length()-2));
+        }
     }
 
     public static void main(String[] args) {
@@ -216,9 +294,11 @@ public class ArrfFile {
         ArrfFile.writeTFfile(arrfFile, tf);
         if(tf.equals("3"))
             System.out.println("Top 10 IDF words - "+arrfFile.getTop10IDFStr());
+        else if(tf.equals("1"))
+            arrfFile.getTop10TFStr();
         else {
-            HashSet<String> hs = new HashSet<String>(arrfFile.attrClassList.size());
-            for (String str : arrfFile.attrClassList)
+
+            /*for (String str : arrfFile.attrClassList)
                 hs.add(str);
             for (Document doc : arrfFile.docs) {
                 if (hs.contains(doc.docClass)) {
@@ -237,7 +317,7 @@ public class ArrfFile {
                     //System.out.println( doc.getTop10Str());// + doc.classEntryLine + " " + doc.docClass);
                     hs.remove(doc.docClass);
                 }
-            }
+            }*/
         }
     }
 }

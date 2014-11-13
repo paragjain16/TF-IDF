@@ -54,36 +54,36 @@ public class Document {
         while(!minHeap.isEmpty()){
             int curr = minHeap.poll();
             int index = attrRealIndex.get(curr);
-            sb.insert(0, attrReal.get(index).attr+", ");
+            sb.insert(0, attrReal.get(index).attr+" "+termFrequency.get(curr)+", ");
         }
-        return sb.toString();
+        return sb.toString().substring(0, sb.length()-2);
     }
     public String getTop10TF1Str(){
         StringBuilder sb = new StringBuilder();
         while(!minHeap1.isEmpty()){
             int curr = minHeap1.poll();
             int index = attrRealIndex.get(curr);
-            sb.insert(0, attrReal.get(index).attr+", ");
+            sb.insert(0, attrReal.get(index).attr+" "+termFrequency1.get(curr)+", ");
         }
-        return sb.toString();
+        return sb.toString().substring(0, sb.length()-2);
     }
     public String getTop10IDFStr(){
         StringBuilder sb = new StringBuilder();
         while(!minHeap2.isEmpty()){
             int curr = minHeap2.poll();
             int index = attrRealIndex.get(curr);
-            sb.insert(0, attrReal.get(index).attr+", ");
+            sb.insert(0, attrReal.get(index).attr+" "+idf.get(curr)+", ");
         }
-        return sb.toString();
+        return sb.toString().substring(0, sb.length()-2);
     }
     public String getTop10TFIDFStr(){
         StringBuilder sb = new StringBuilder();
         while(!minHeap3.isEmpty()){
             int curr = minHeap3.poll();
             int index = attrRealIndex.get(curr);
-            sb.insert(0, attrReal.get(index).attr+", ");
+            sb.insert(0, attrReal.get(index).attr+" "+tfIdf.get(curr)+", ");
         }
-        return sb.toString();
+        return sb.toString().substring(0, sb.length()-2);
     }
     public String toTFString(){
         StringBuilder str = new StringBuilder("{");
@@ -204,5 +204,4 @@ public class Document {
         return new Document(attrRealIndex, count, termFrequency, totalCount, minHeap, minHeap1, docClass,
                 attrReal, classEntryLine, maxCountIndex, maxCount, termFrequency1, docEntryLine);
     }
-
 }
