@@ -39,71 +39,26 @@ public class Document {
         this.maxCount = maxCount;
         this.termFrequency1 = termFrequency1;
     }
-    public String getTop10(){
-        StringBuilder sb = new StringBuilder();
-        while(!minHeap.isEmpty()){
-            int curr = minHeap.poll();
-            int index = attrRealIndex.get(curr);
-            sb.append("Index: "+index+" Word: "+attrReal.get(index).attr+" Count: "+count.get(curr)+" Term Freq: "+termFrequency.get(curr));
-            sb.append("\n");
-        }
-        return sb.toString();
-    }
-    public String getTop10TFStr(){
-        StringBuilder sb = new StringBuilder();
-        while(!minHeap.isEmpty()){
-            int curr = minHeap.poll();
-            int index = attrRealIndex.get(curr);
-            sb.insert(0, attrReal.get(index).attr+" "+termFrequency.get(curr)+", ");
-        }
-        return sb.toString().substring(0, sb.length()-2);
-    }
-    public String getTop10TF1Str(){
-        StringBuilder sb = new StringBuilder();
-        while(!minHeap1.isEmpty()){
-            int curr = minHeap1.poll();
-            int index = attrRealIndex.get(curr);
-            sb.insert(0, attrReal.get(index).attr+" "+termFrequency1.get(curr)+", ");
-        }
-        return sb.toString().substring(0, sb.length()-2);
-    }
-    public String getTop10IDFStr(){
-        StringBuilder sb = new StringBuilder();
-        while(!minHeap2.isEmpty()){
-            int curr = minHeap2.poll();
-            int index = attrRealIndex.get(curr);
-            sb.insert(0, attrReal.get(index).attr+" "+idf.get(curr)+", ");
-        }
-        return sb.toString().substring(0, sb.length()-2);
-    }
-    public String getTop10TFIDFStr(){
-        StringBuilder sb = new StringBuilder();
-        while(!minHeap3.isEmpty()){
-            int curr = minHeap3.poll();
-            int index = attrRealIndex.get(curr);
-            sb.insert(0, attrReal.get(index).attr+" "+tfIdf.get(curr)+", ");
-        }
-        return sb.toString().substring(0, sb.length()-2);
-    }
-    public String toTFString(){
+
+    public String toTF1String(){
         StringBuilder str = new StringBuilder("{");
         int i=0;
         for(int index: attrRealIndex){
             str.append(index+" "+termFrequency.get(i)+",");
             i++;
         }
-        str.append(docEntryLine+" "+docClass+"}");
+        str.append(classEntryLine+" "+docClass+"}");
         return str.toString();
     }
 
-    public String toTF1String(){
+    public String toTF2String(){
         StringBuilder str = new StringBuilder("{");
         int i=0;
         for(int index: attrRealIndex){
             str.append(index+" "+termFrequency1.get(i)+",");
             i++;
         }
-        str.append(docEntryLine+" "+docClass+"}");
+        str.append(classEntryLine+" "+docClass+"}");
         return str.toString();
     }
 
@@ -114,7 +69,7 @@ public class Document {
             str.append(index+" "+idf.get(i)+",");
             i++;
         }
-        str.append(docEntryLine+" "+docClass+"}");
+        str.append(classEntryLine+" "+docClass+"}");
         return str.toString();
     }
 
@@ -125,7 +80,7 @@ public class Document {
             str.append(index+" "+tfIdf.get(i)+",");
             i++;
         }
-        str.append(docEntryLine+" "+docClass+"}");
+        str.append(classEntryLine+" "+docClass+"}");
         return str.toString();
     }
 
@@ -203,5 +158,52 @@ public class Document {
         }
         return new Document(attrRealIndex, count, termFrequency, totalCount, minHeap, minHeap1, docClass,
                 attrReal, classEntryLine, maxCountIndex, maxCount, termFrequency1, docEntryLine);
+    }
+    ////////////////////////////////////////// Methods below are not used
+    public String getTop10(){
+        StringBuilder sb = new StringBuilder();
+        while(!minHeap.isEmpty()){
+            int curr = minHeap.poll();
+            int index = attrRealIndex.get(curr);
+            sb.append("Index: "+index+" Word: "+attrReal.get(index).attr+" Count: "+count.get(curr)+" Term Freq: "+termFrequency.get(curr));
+            sb.append("\n");
+        }
+        return sb.toString();
+    }
+    public String getTop10TFStr(){
+        StringBuilder sb = new StringBuilder();
+        while(!minHeap.isEmpty()){
+            int curr = minHeap.poll();
+            int index = attrRealIndex.get(curr);
+            sb.insert(0, attrReal.get(index).attr+" "+termFrequency.get(curr)+", ");
+        }
+        return sb.toString().substring(0, sb.length()-2);
+    }
+    public String getTop10TF1Str(){
+        StringBuilder sb = new StringBuilder();
+        while(!minHeap1.isEmpty()){
+            int curr = minHeap1.poll();
+            int index = attrRealIndex.get(curr);
+            sb.insert(0, attrReal.get(index).attr+" "+termFrequency1.get(curr)+", ");
+        }
+        return sb.toString().substring(0, sb.length()-2);
+    }
+    public String getTop10IDFStr(){
+        StringBuilder sb = new StringBuilder();
+        while(!minHeap2.isEmpty()){
+            int curr = minHeap2.poll();
+            int index = attrRealIndex.get(curr);
+            sb.insert(0, attrReal.get(index).attr+" "+idf.get(curr)+", ");
+        }
+        return sb.toString().substring(0, sb.length()-2);
+    }
+    public String getTop10TFIDFStr(){
+        StringBuilder sb = new StringBuilder();
+        while(!minHeap3.isEmpty()){
+            int curr = minHeap3.poll();
+            int index = attrRealIndex.get(curr);
+            sb.insert(0, attrReal.get(index).attr+" "+tfIdf.get(curr)+", ");
+        }
+        return sb.toString().substring(0, sb.length()-2);
     }
 }

@@ -199,9 +199,9 @@ public class ArrfFile {
             pw.println("@data");
             for(Document document: arrfFile.docs){
                 if(tf.equals("1"))
-                    pw.println(document.toTFString());
-                else if(tf.equals("2"))
                     pw.println(document.toTF1String());
+                else if(tf.equals("2"))
+                    pw.println(document.toTF2String());
                 else if(tf.equals("3"))
                     pw.println(document.toIDFString());
                 else if(tf.equals("4"))
@@ -222,9 +222,10 @@ public class ArrfFile {
         return sb.toString().substring(0, sb.length()-2);
     }
 
-    public void getTop10TFStr(){
-
+    public void getTop10TF1Str(){
         for (String str : attrClassList){
+            if(!mappingFromClassToDocs.containsKey(str))
+                continue;
             final ArrayList<Double> tflist = new ArrayList<Double>();
             final ArrayList<String> attributes = new ArrayList<String>();
             PriorityQueue<Integer> minHeapLocal = new PriorityQueue<Integer>(10, new Comparator<Integer>() {
@@ -279,15 +280,80 @@ public class ArrfFile {
                     }
                 }
             }
-            System.out.println("Top 10 TF (1) words for newsgroup "+str +" are - ");
+            System.out.println("Top 10 TF (1) words for newsgroup " + str + " are - ");
             while(!minHeapLocal.isEmpty()){
                 int curr = minHeapLocal.poll();
                 sb.insert(0, attributes.get(curr)+" "+tflist.get(curr)+", ");
             }
-            System.out.println(sb.toString().substring(0, sb.length()-2));
+            System.out.println(sb.toString().substring(0, sb.length() - 2));
         }
     }
+    public void getTop10TF2Str(){
+        for (String str : attrClassList){
+            if(!mappingFromClassToDocs.containsKey(str))
+                continue;
+            final ArrayList<Double> tflist = new ArrayList<Double>();
+            final ArrayList<String> attributes = new ArrayList<String>();
+            PriorityQueue<Integer> minHeapLocal = new PriorityQueue<Integer>(10, new Comparator<Integer>() {
+                @Override
+                public int compare(Integer o1, Integer o2) {
+                    if(Double.compare(tflist.get(o1), tflist.get(o2)) > 0)
+                        return 1;
+                    else if(Double.compare(tflist.get(o1), tflist.get(o2)) < 0)
+                        return -1;
+                    else
+                        return 0;
+                }
+            });
+            StringBuilder sb = new StringBuilder();
 
+
+            //HashMap<String, Double> map = new HashMap<String, Double>();
+            for(Document doc: mappingFromClassToDocs.get(str)){
+                while(!doc.minHeap1.isEmpty()){
+                    int curr = doc.minHeap1.poll();
+                    int index = doc.attrRealIndex.get(curr);
+                    double tf = doc.termFrequency1.get(curr);
+                    String attr = doc.attrReal.get(index).attr;
+                    tflist.add(tf);
+                    attributes.add(attr);
+                }
+
+            }
+            HashMap<String, Integer> attrInHeap = new HashMap<String, Integer>();
+            for(int i =0; i< tflist.size(); i++){
+                String currentAttribute = attributes.get(i);
+                if(!attrInHeap.containsKey(currentAttribute)) {
+                    if (minHeapLocal.size() < 10) {
+                        minHeapLocal.offer(i);
+                        attrInHeap.put(currentAttribute, i);
+                    }else{
+                        int index = minHeapLocal.peek();
+                        if(Double.compare(tflist.get(i), tflist.get(index)) > 0){
+                            minHeapLocal.poll();
+                            attrInHeap.remove(attributes.get(index));
+                            minHeapLocal.offer(i);
+                            attrInHeap.put(currentAttribute, i);
+                        }
+                    }
+
+                }else{
+                    int indexOfDuplicate = attrInHeap.get(attributes.get(i));
+                    if(Double.compare(tflist.get(indexOfDuplicate), tflist.get(i)) < 0){
+                        minHeapLocal.remove(indexOfDuplicate);
+                        minHeapLocal.offer(i);
+                        attrInHeap.put(currentAttribute, i);
+                    }
+                }
+            }
+            System.out.println("Top 10 TF (2) words for newsgroup " + str + " are - ");
+            while(!minHeapLocal.isEmpty()){
+                int curr = minHeapLocal.poll();
+                sb.insert(0, attributes.get(curr)+" "+tflist.get(curr)+", ");
+            }
+            System.out.println(sb.toString().substring(0, sb.length() - 2));
+        }
+    }
     public static void main(String[] args) {
         String tf = args[1];
         ArrfFile arrfFile = ArrfFile.readFile(args[0]);
@@ -295,10 +361,15 @@ public class ArrfFile {
         if(tf.equals("3"))
             System.out.println("Top 10 IDF words - "+arrfFile.getTop10IDFStr());
         else if(tf.equals("1"))
-            arrfFile.getTop10TFStr();
-        else {
+            arrfFile.getTop10TF1Str();
+        else if(tf.equals("2"))
+            arrfFile.getTop10TF2Str();
 
-            /*for (String str : arrfFile.attrClassList)
+    }
+}
+        /*else {
+            HashSet<String> hs = new HashSet<String>();
+            for (String str : arrfFile.attrClassList)
                 hs.add(str);
             for (Document doc : arrfFile.docs) {
                 if (hs.contains(doc.docClass)) {
@@ -317,7 +388,5 @@ public class ArrfFile {
                     //System.out.println( doc.getTop10Str());// + doc.classEntryLine + " " + doc.docClass);
                     hs.remove(doc.docClass);
                 }
-            }*/
-        }
-    }
-}
+            }
+        //}*/
