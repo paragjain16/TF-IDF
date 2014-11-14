@@ -92,9 +92,11 @@ public class ArrfFile {
             //Calculate IDF
             int k=0;
             for(AttributeReal attributeReal: attrReal){
+                System.out.println("Total docs "+totalDocs);
+                System.out.println("Term "+attributeReal.attr+" is in "+attributeReal.docs+" docs");
                 double idf = Math.log((double)totalDocs/(1+attributeReal.docs));
                 attributeReal.idf = idf;
-                if(minHeapIDF.size() <= 10) {
+                if(minHeapIDF.size() < 10) {
                     minHeapIDF.add(k);
                 }else{
                     int index = minHeapIDF.peek();
@@ -108,7 +110,7 @@ public class ArrfFile {
             // For TF IDF
             for(Document document: docs){
                 final Document doc = document;
-                int j=0;
+
                 doc.idf = new ArrayList<Double>(doc.attrRealIndex.size());
                 doc.tfIdf = new ArrayList<Double>(doc.attrRealIndex.size());
 
@@ -116,32 +118,24 @@ public class ArrfFile {
                 doc.minHeap2 = new PriorityQueue<Integer>(10, new Comparator<Integer>(){
                     @Override
                     public int compare(Integer o1, Integer o2) {
-                        if(Double.compare(doc.idf.get(o1), doc.idf.get(o2)) > 0)
-                            return 1;
-                        else if(Double.compare(doc.idf.get(o1), doc.idf.get(o2)) < 0)
-                            return -1;
-                        return 0;
+                        return Double.compare(doc.idf.get(o1), doc.idf.get(o2));
                     }
                 });
                 //TF-IDF
                 doc.minHeap3 = new PriorityQueue<Integer>(10, new Comparator<Integer>(){
                     @Override
                     public int compare(Integer o1, Integer o2) {
-                        if(Double.compare(doc.tfIdf.get(o1), doc.tfIdf.get(o2)) > 0)
-                            return 1;
-                        else if(Double.compare(doc.tfIdf.get(o1), doc.tfIdf.get(o2)) < 0)
-                            return -1;
-                        return 0;
+                        return Double.compare(doc.tfIdf.get(o1), doc.tfIdf.get(o2));
                     }
                 });
-
+                int j=0;
                 for(int index: doc.attrRealIndex){
                     double idf = doc.count.get(j)*attrReal.get(index).idf;
                     double tfIdf = doc.termFrequency.get(j)*attrReal.get(index).idf;
                     doc.idf.add(idf);
                     doc.tfIdf.add(tfIdf);
 
-                    if(doc.minHeap2.size() <= 10) {
+                    if(doc.minHeap2.size() < 10) {
                         doc.minHeap2.add(j);
                     }else{
                         int idx = doc.minHeap2.peek();
@@ -150,7 +144,7 @@ public class ArrfFile {
                             doc.minHeap2.add(j);
                         }
                     }
-                    if(doc.minHeap3.size() <= 10) {
+                    if(doc.minHeap3.size() < 10) {
                         doc.minHeap3.add(j);
                     }else{
                         int idx = doc.minHeap3.peek();
@@ -354,6 +348,67 @@ public class ArrfFile {
             System.out.println(sb.toString().substring(0, sb.length() - 2));
         }
     }
+
+    public void getTop10TFIDFStr(){
+        for (String str : attrClassList){
+            if(!mappingFromClassToDocs.containsKey(str))
+                continue;
+            final ArrayList<Double> tfidflist = new ArrayList<Double>();
+            final ArrayList<String> attributes = new ArrayList<String>();
+            PriorityQueue<Integer> minHeapLocal = new PriorityQueue<Integer>(10, new Comparator<Integer>() {
+                @Override
+                public int compare(Integer o1, Integer o2) {
+                    return Double.compare(tfidflist.get(o1), tfidflist.get(o2));
+                }
+            });
+            StringBuilder sb = new StringBuilder();
+
+            //HashMap<String, Double> map = new HashMap<String, Double>();
+            for(Document doc: mappingFromClassToDocs.get(str)){
+                while(!doc.minHeap3.isEmpty()){
+                    int curr = doc.minHeap3.poll();
+                    int index = doc.attrRealIndex.get(curr);
+                    double tfidf = doc.tfIdf.get(curr);
+                    String attr = doc.attrReal.get(index).attr;
+                    tfidflist.add(tfidf);
+                    attributes.add(attr);
+                }
+
+            }
+            HashMap<String, Integer> attrInHeap = new HashMap<String, Integer>();
+            for(int i =0; i< tfidflist.size(); i++){
+                String currentAttribute = attributes.get(i);
+                if(!attrInHeap.containsKey(currentAttribute)) {
+                    if (minHeapLocal.size() < 10) {
+                        minHeapLocal.offer(i);
+                        attrInHeap.put(currentAttribute, i);
+                    }else{
+                        int index = minHeapLocal.peek();
+                        if(Double.compare(tfidflist.get(i), tfidflist.get(index)) > 0){
+                            minHeapLocal.poll();
+                            attrInHeap.remove(attributes.get(index));
+                            minHeapLocal.offer(i);
+                            attrInHeap.put(currentAttribute, i);
+                        }
+                    }
+
+                }else{
+                    int indexOfDuplicate = attrInHeap.get(attributes.get(i));
+                    if(Double.compare(tfidflist.get(indexOfDuplicate), tfidflist.get(i)) < 0){
+                        minHeapLocal.remove(indexOfDuplicate);
+                        minHeapLocal.offer(i);
+                        attrInHeap.put(currentAttribute, i);
+                    }
+                }
+            }
+            System.out.println("Top 10 TF IDF words for newsgroup " + str + " are - ");
+            while(!minHeapLocal.isEmpty()){
+                int curr = minHeapLocal.poll();
+                sb.insert(0, attributes.get(curr)+" "+tfidflist.get(curr)+", ");
+            }
+            System.out.println(sb.toString().substring(0, sb.length() - 2));
+        }
+    }
     public static void main(String[] args) {
         String tf = args[1];
         ArrfFile arrfFile = ArrfFile.readFile(args[0]);
@@ -364,7 +419,8 @@ public class ArrfFile {
             arrfFile.getTop10TF1Str();
         else if(tf.equals("2"))
             arrfFile.getTop10TF2Str();
-
+        else if(tf.equals("4"))
+            arrfFile.getTop10TFIDFStr();
     }
 }
         /*else {

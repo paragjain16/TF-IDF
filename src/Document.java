@@ -11,10 +11,10 @@ public class Document {
     ArrayList<Double> idf;
     ArrayList<Double> tfIdf;
     int totalCount;
-    PriorityQueue<Integer> minHeap;
-    PriorityQueue<Integer> minHeap1;
-    PriorityQueue<Integer> minHeap2;
-    PriorityQueue<Integer> minHeap3;
+    PriorityQueue<Integer> minHeap; //for tf 1
+    PriorityQueue<Integer> minHeap1; //for tf 2
+    PriorityQueue<Integer> minHeap2; // for idf
+    PriorityQueue<Integer> minHeap3; // for tf idf
     String docClass;
     String classEntryLine;
     final ArrayList<AttributeReal> attrReal;
@@ -114,21 +114,13 @@ public class Document {
         PriorityQueue<Integer> minHeap = new PriorityQueue<Integer>(10, new Comparator<Integer>(){
             @Override
             public int compare(Integer o1, Integer o2) {
-                if(termFrequency.get(o1) > termFrequency.get(o2))
-                    return 1;
-                else if(termFrequency.get(o1) < termFrequency.get(o2))
-                    return -1;
-                return 0;
+                return Double.compare(termFrequency.get(o1), termFrequency.get(o2));
             }
         });
         PriorityQueue<Integer> minHeap1 = new PriorityQueue<Integer>(10, new Comparator<Integer>(){
             @Override
             public int compare(Integer o1, Integer o2) {
-                if(termFrequency1.get(o1) > termFrequency1.get(o2))
-                    return 1;
-                else if(termFrequency1.get(o1) < termFrequency1.get(o2))
-                    return -1;
-                return 0;
+                return Double.compare(termFrequency1.get(o1), termFrequency1.get(o2));
             }
         });
 
@@ -137,7 +129,7 @@ public class Document {
             double termFreq1 = (double)count.get(i)/maxCount;
             termFrequency.add(termFreq);
             termFrequency1.add(termFreq1);
-            if(minHeap.size() <= 10) {
+            if(minHeap.size() < 10) {
                 minHeap.add(i);
             }else{
                 int index = minHeap.peek();
@@ -146,7 +138,7 @@ public class Document {
                     minHeap.add(i);
                 }
             }
-            if(minHeap1.size() <= 10) {
+            if(minHeap1.size() < 10) {
                 minHeap1.add(i);
             }else{
                 int index = minHeap1.peek();
