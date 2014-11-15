@@ -38,6 +38,7 @@ public class Document {
         this.maxCountIndex = maxCountIndex;
         this.maxCount = maxCount;
         this.termFrequency1 = termFrequency1;
+        //this.minHeap2 = minHeap2;
     }
 
     public String toTF1String(){
@@ -124,6 +125,7 @@ public class Document {
             }
         });
 
+
         for(int i=0; i<attrRealIndex.size(); i++){
             double termFreq = (double)count.get(i)/totalCount;
             double termFreq1 = (double)count.get(i)/maxCount;
@@ -147,6 +149,7 @@ public class Document {
                     minHeap1.add(i);
                 }
             }
+
         }
         return new Document(attrRealIndex, count, termFrequency, totalCount, minHeap, minHeap1, docClass,
                 attrReal, classEntryLine, maxCountIndex, maxCount, termFrequency1, docEntryLine);
